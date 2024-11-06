@@ -1,6 +1,5 @@
 import glob
 import os
-import matplotlib.pyplot as plt
 import geopandas as gpd
 import numpy as np
 import pandas as pd
@@ -85,7 +84,7 @@ for i in cities:
 master_output_stats.to_csv(r'../Output/aggregated_stats.csv' )
 
 
-############################# regression#############################
+############################# dasymetric mapping #############################
 print('#############################starting the regression#############################')
 perform = r'../Output/performance.csv'
 p_df = pd.DataFrame() # define a dataframe to save best model parameters and performances
@@ -145,10 +144,10 @@ for pvar in tpop_dict.keys():
     max_depth = grid_search.best_params_.get('max_depth')
     n_est = grid_search.best_params_.get('n_estimators')
     p_df.loc[idx_metrics, 'pvar'] = pvar
-    p_df.loc[idx_metrics,'training_rmse']= np.sqrt(np.sqrt(-1*best_score))
+    p_df.loc[idx_metrics,'training_rmse']= np.sqrt(-1*best_score)
     p_df.loc[idx_metrics, 'max_depth'] = max_depth
     p_df.loc[idx_metrics, 'n_est'] = n_est
-    p_df.loc[idx_metrics, 'test_rmse'] = np.sqrt(test_rmse)
+    p_df.loc[idx_metrics, 'test_rmse'] = test_rmse
     p_df.loc[idx_metrics, 'test_r2'] = test_r2
     p_df.loc[idx_metrics, 'n_samples'] = len(master_out)
     idx_metrics = idx_metrics+1
@@ -239,79 +238,4 @@ for pvar in tpop_dict.keys():
             dst.write(pde)
 
 
-# # second validation - population assignment from the district vs from the subdistrict
-# for p in provinces:  # remember to change it back
-#     dir = r'U:\05_processing\end_res_from_district\%s' % p
-#     cities = glob.glob(r'U:\05_processing\downscale_per_city\city_%s*' %p)
-#     cities = [x.split('_')[-1] for x in cities]
-#     for i in cities:
-#         print(i)
-#         district = gpd.read_file(r'U:\05_processing\downscale_per_city\city_%s\county_bnd_%s.shp'%(i,i))
-#         for pvar in tpop_dict.keys():
-#             with rasterio.open(r'U:\05_processing\end_res_from_district\%s\weight_%s_%s.tif'%(p,pvar,i)) as src:
-#                 weight = src.read(1).astype(np.float64)
-#                 affine = src.transform
-#             # pop_grid = rasterio.open('%s/%s_%s.tif' % (dir, i, pvar)).read(1).astype(np.float64)
-#             # weight = np.where(pop_grid!=-999,weight,0)
-#             # pop = rasterio.open(r'U:\05_processing\downscale_per_city\city_%s\county_%s_%s.tif'%(i,tpop_dict.get(pvar),i)).read().astype(np.float64)
-#             # stats = zonal_stats(district, weight, copy_properties=True, stats=['sum'],affine=affine)
-#             # stats = pd.DataFrame(stats)
-#             # stats = pd.merge(district, stats, left_index=True, right_index=True)
-#             # stats = stats[['county_cod','sum']]
-#             # zone_file = r'U:\05_processing\downscale_per_city\city_%s\county_bnd_%s.tif'%(i,i)
-#             # zone_file = rasterio.open(zone_file).read()
-#             # value_dict = dict(set(zip(stats['county_cod'], stats['sum'])))
-#             # total_weight = np.copy(zone_file)
-#             #
-#             # for old, new in value_dict.items():
-#             #     total_weight[zone_file == old] = new
-#             # total_pop = rasterio.open(
-#             #     r'U:\05_processing\downscale_per_city\city_%s\county_%s_%s.tif' % (i, tpop_dict.get(pvar), i)).read().astype(
-#             #     np.float64)  # read the total pop in raster
-#             # pde = total_pop * weight / total_weight
-#             out_pop = '%s/%s_%s.tif' % (dir, i, pvar)
-#             # kwargs = src.meta
-#             # with rasterio.open(out_pop, 'w', **kwargs) as dst:
-#             #     dst.write(pde)
-#             subdistrict = gpd.read_file(r'U:\05_processing\downscale_per_city\city_%s\bnd_%s.shp' % (i, i))
-#             pop_stats = zonal_stats(subdistrict, out_pop, copy_properties=True, stats=['sum'], affine=affine)
-#             pop_stats = pd.DataFrame(pop_stats)
-#             pop_stats = pd.merge(subdistrict, pop_stats, left_index=True, right_index=True)
-#             pop_stats= pop_stats[['county_cod',pvar, 'sum','bnd_seq','missing_bn']]
-#             pop_stats = pop_stats.rename(columns={pvar:'actual','sum':'predicted'})
-#             pop_stats.to_csv(r'U:\05_processing\end_res_from_district\%s\pop_assignment_zonal_%s_%s.csv'%(p,pvar,i))
 
-
-# # # 3rd validation - age-group population equaling the total?
-# idx = 0
-# sum_pop_master= []
-# total_pop_master =[]
-# for p in provinces:
-#     pop_match  = pd.DataFrame()
-#     dir = r'U:\05_processing\end_res_from_district\%s' % p
-#     cities = glob.glob(r'U:\05_processing\downscale_per_city\city_%s*' %p)
-#     cities = [x.split('_')[-1] for x in cities]
-#     for i in cities:
-#         sum_pop = []
-#         for pvar in ['age0_14','age15_59','age60_65','age65above']:
-#             out_pop = rasterio.open('%s/%s_%s.tif' % (dir, i, pvar)).read().astype(np.float64)
-#             if pvar =='age0_14':
-#                 sum_pop = out_pop
-#             else:
-#                 sum_pop = sum_pop+out_pop
-#
-#         total_pop_array  = rasterio.open('%s/%s_%s.tif' % (dir, i, 'total_pop')).read().astype(np.float64)
-#         mask = rasterio.open(r'U:\05_processing\downscale_per_city\city_%s\masked_final_hab.tif'%i).read().astype(np.float64)
-#         mask = np.ma.mask_or(total_pop_array==-999,mask!=1)
-#         sum_pop= np.ma.masked_array(sum_pop,mask = mask)
-#         total_pop_array= np.ma.masked_array(total_pop_array,mask = mask)
-#         sum_pop=sum_pop.compressed()
-#         total_pop_array =total_pop_array.compressed()
-#         sum_pop_master = np.hstack((sum_pop_master,sum_pop))
-#         total_pop_master = np.hstack((total_pop_master,total_pop_array))
-#         print(sum_pop.shape,sum_pop_master.shape,total_pop_master.shape)
-#     pop_match.loc[idx, 'city'] =i
-#     pop_match.loc[idx, 'corr'] = np.corrcoef(sum_pop_master,total_pop_master)[0,1]
-#     pop_match.loc[idx, 'rmse'] = np.sqrt(mean_squared_error(sum_pop_master,total_pop_master))
-#     idx = idx+1
-#     pop_match.to_csv(r'U:\05_processing\end_res_from_district\%s\pop_match.csv'%p)
