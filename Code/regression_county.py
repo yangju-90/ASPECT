@@ -32,6 +32,10 @@ for i in cities:
     if not os.path.exists(dir):
         os.makedirs(dir)
 
+    output_dir = r'..\Output\county_output'
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
     # mask out un-inhabited areas
     print('doing masking')
     bnd = gpd.read_file(r'..\Data\city_%s\county_bnd_%s.shp' % (i, i))
